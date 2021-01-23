@@ -1,0 +1,195 @@
+---
+title: "Daily Assignment"
+author: "RanMa"
+date: "2020/3/12"
+output: 
+  html_document: 
+    theme: yeti
+    toc: yes
+    toc_depth: 2
+  pdf_document: default
+  word_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## R|for 
+这一部分包括以下内容
+
+* for循环与可视化
+  * 螺线图
+  * 雪花曲线
+* for循环与apply族函数
+
+
+### Visualization
+
+#### Spiral
+
+```{r, eval = FALSE}
+library(plotrix) #draw.circle
+
+xtmp <- seq(1,9,by=0.1)
+
+f <- function(x,y) (x-5)^2+(y-2)^2-16 # 隐函数
+
+n <- length(xtmp)
+
+ytmp <- numeric(n) # 创建长度为n的向量，每个元素都为0
+#ytmp变成和xtmp长度相同的向量，便于之后向ytmp中储存xtmp对应的函数值
+
+for (i in 1:n){
+  ftmp<-function(y) f(xtmp[i],y)
+  tmp<-uniroot(ftmp,c(2,6))  # x取定时,解方程算出y, y的取值范围为(2,6), 即上半圆
+  ytmp[i]<-tmp$root 
+}
+plot(xtmp,ytmp,type='l',col='white')
+
+for(i in 1:n){
+  draw.circle(xtmp[i],ytmp[i],sqrt(i)/10,border=hsv((i/90)^(1/4),(i/90)^(1/4),(i/90)^(1/4)))
+  Sys.sleep(0.1) # 每次循环停顿0.1s
+}
+```
+![](C:/Users/RanMa/Documents/circle.gif)
+
+
+
+
+
+#### Koch Curve
+
+```{r, eval = FALSE}
+# 以线的形式给出x和y的坐标（初始三角形）
+line1 = list(c(100, 0), c(0, 0))
+line2 = list(c(0, 0), c(50, 50*sqrt(3)))
+line3 = list(c(50, 50*sqrt(3)), c(100, 0))
+
+# 循环次数
+number_of_iterations = 8
+
+# 返回点A,B,C的x,y坐标（C是在顶端的点）
+# 新的a,b点是在line1（即AB）的三分位点处
+make_triangle = function(point_a, point_b){
+  a_x = point_a[1] + (point_b[1] - point_a[1]) / 3
+  a_y = point_a[2] + (point_b[2] - point_a[2]) / 3
+  b_x = point_a[1] + 2 * ((point_b[1] - point_a[1]) / 3)
+  b_y = point_a[2] + 2 * ((point_b[2] - point_a[2]) / 3)
+  c_x = (0.5 * (b_x - a_x) - (sqrt(3) / 2) * (b_y - a_y)) + a_x
+  c_y = (sqrt(3) / 2) * (b_x - a_x) + 0.5 * (b_y - a_y) + a_y
+  list(c(a_x, a_y), c(b_x, b_y), c(c_x, c_y))
+}
+
+# 定义一个函数，表示线的下一次迭代
+next_iteration = function(arr){
+  len = length(arr)
+  for (i in 0:(len-2)){  #是按线进行的循环，从0开始保证可以画出初始三角形
+    triangle = make_triangle(arr[[4*i+1]], arr[[4*i+2]])
+    arr = append(arr, list(triangle[[2]]), after = 4*i+1)
+    arr = append(arr, list(triangle[[3]]), after = 4*i+1)
+    arr = append(arr, list(triangle[[1]]), after = 4*i+1)
+  }
+  arr
+} 
+
+# 定义相邻两点间连线的函数
+draw_line = function(arr, col){
+  x_number_values = c()
+  y_number_values = c()
+  for (p in arr){
+    x_number_values = append(x_number_values, p[1])
+    y_number_values = append(y_number_values, p[2])
+  }
+  plot(x_number_values, y_number_values, type="l", 
+       xaxt="n", yaxt="n", xlab="", ylab="", col=col, 
+       asp = 1)
+  title(main="Koch Curve")
+}
+
+# loop
+for (i in 1:number_of_iterations){
+  line1 = next_iteration(line1)
+  line2 = next_iteration(line2)
+  line3 = next_iteration(line3)
+}
+
+points = c(line1, line2, line3)
+draw_line(points, "black")
+
+```
+![](C:/Users/RanMa/Documents/Rplot.png)
+
+[Dynamic Koch curve](http://127.0.0.1:6359)
+
+
+
+
+### for & apply
+
+apply族函数可以按组对数据进行处理
+
+* apply：适用于数组或矩阵，返回向量、数组或列表
+* lapply：适用于列表或向量，返回列表
+* sapply：适用于列表或向量，但可以返回向量、矩阵或列表
+* tapply：适用于不规则的阵，返回的也是不规则的阵
+* mapply：适用于多个列表或向量，返回列表
+
+#### apply
+```{r, include=TRUE}
+data = matrix(1:20, nrow = 5)
+# 对data按列求均值
+# for循环
+mean_col = c()
+for (i in (1:ncol(data))){
+  mean_col = append(mean_col, mean(data[,i]))
+}
+mean_col
+
+# apply
+mean_col = apply(data, 2, mean)
+mean_col
+```
+
+
+#### lapply, sapply
+```{r, include=TRUE}
+data_f = as.data.frame(data)
+colnames(data_f) = c('col1','col2','col3','col4')
+
+# lapply
+mean_col2 = lapply(data_f, mean)
+mean_col2
+
+# sapply
+mean_col3 = sapply(data_f, mean)
+mean_col3
+```
+
+#### mapply
+```{r, include=TRUE}
+mapply(sum, data[,1], data[,3])   
+#对data矩阵每一行的第一个元素和第三个元素求和
+```
+
+
+
+## Easter Egg
+```{r, eval = FALSE}
+library(jiebaRD)
+library(jiebaR)
+library(wordcloud2)
+
+setwd('C:/Users/RanMa/Documents')
+orgtext<- scan('MadameBovary.txt',what='',encoding="UTF-8")#读入做词云的文本
+seg <- qseg[orgtext]#分词
+seg <- seg[nchar(seg)>5] #去除字符长度小于等于5的词
+seg <- table(seg)#转换类型
+seg <- sort(seg, decreasing = TRUE)[1:200]#取前200词做词云
+wordcloud2(seg, size = 1,color = 'random-light')
+
+```
+
+[Word Cloud](http://localhost:24514/session/viewhtml1b0c23af6d2e/index.html)
